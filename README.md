@@ -3,6 +3,9 @@
 - kryptos = secret, graphein = to write
 - Goal: Keep written things secret (e.g., messages)
 
+- Link to samples
+  - https://github.com/thenativeweb/temp--crypto
+
 ## Caesar encryption
 
 - Plain text (aka original message), e.g. "HELLO"
@@ -87,6 +90,8 @@ Charlie ----- Denise
   - Chain = Array, or a single-linked list
   - Block = Data structure, contains transactions
   - Transaction = Single piece of data which describes sending money
+  - Mining = Process of calculating a hash for a block where the hash starts with a specific pattern
+  - Proof of work = Process of finding a suitable nonce for mining
 
 ```shell
 # Install dependencies (once)
@@ -141,3 +146,9 @@ John     | df13 | 296256f4d474
   - pbkdf2
   - bcrypt
   - scrypt (you may use this one)
+
+## Random numbers
+
+```javascript
+console.log(Math.random()); // 0..0.9999999…
+```

@@ -14,6 +14,16 @@ class Transaction {
     toAddress: string;
     amount: number;
   }) {
+    if (!fromAddress || !toAddress) {
+      throw new Error('From address and to address must be given.');
+    }
+    if (fromAddress === toAddress) {
+      throw new Error('Can not send money to yourself.');
+    }
+    if (amount <= 0) {
+      throw new Error('Amount must be positive.');
+    }
+
     this.fromAddress = fromAddress;
     this.toAddress = toAddress;
     this.amount = amount;
@@ -27,6 +37,13 @@ class Transaction {
     const hash = hashAlgorithm.update(valueToBeHashed).digest('hex');
 
     return hash;
+  }
+
+  public isValid (): boolean {
+    // TODO: Add some validation logic here, including verifying the hash to ensure
+    //       that the transaction has not been tampered with.
+
+    return true;
   }
 }
 
