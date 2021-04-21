@@ -152,3 +152,62 @@ John     | df13 | 296256f4d474
 ```javascript
 console.log(Math.random()); // 0..0.9999999…
 ```
+
+- PRNG, pseudo-random number generator
+  - They create patterns, hence they are not suited very well for cryptography
+
+- "Real" randomness
+  - Based on hardware behavior, such as voltage, temperature, noise, …
+  - "Cryptographically secure random number generators"
+  - CSRNG
+
+## The perfect encryption
+
+- Caesar applied to a single letter
+
+- Cipher text: `T`
+  - We don't have any repetition any more => we don't have any patterns
+  - Brute forcing doesn't work, because we can't say whether e.g. `F` is correct or not
+  - Statistical analysis doesn't work, because we don't have any patterns
+
+```
+H   E   L   L   O
++1  +7  +3  +4  +17    <-- randomly chosen
+I   L   O   P   F
+```
+
+- Eve receives `ILOPF` … "what could that be?"
+  - Eve will get the correct answer, but also *all* incorrect ones
+  - And she will not be able to tell the difference between the correct and the wrong ones
+
+- This works if:
+  - The key must absolutely be true random
+  - The key must be as long as the text to encrypt (pad)
+  - The key must only be used once (one-time)
+
+```
+=> One-time pad (OTP)
+```
+
+- It is said to be actually being used
+  - Government, military, …
+  - The idea here is: Having code books (i.e. books with random numbers on their pages)
+
+## Interims summary
+
+- Encryption (weak, perfect)
+  - Key exchange
+  - Not practical
+- Hash functions
+  - Ensuring integrity
+  - How to avoid simply recalculating the hash?
+- Random numbers
+  - Pseudo-random number generator (PRNGs)
+  - Cryptographically secure random number generators (CSRNGs)
+
+- Open questions
+  - How to encrypt in reality?
+  - How to solve the key exchange problem?
+  - How to protect hashes?
+  - How to sign things (i.e. digital signatures)?
+  - How does all this relate to the internet with certificates & co.?
