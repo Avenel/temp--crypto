@@ -206,8 +206,313 @@ I   L   O   P   F
   - Cryptographically secure random number generators (CSRNGs)
 
 - Open questions
+  - How to protect hashes?
   - How to encrypt in reality?
   - How to solve the key exchange problem?
-  - How to protect hashes?
   - How to sign things (i.e. digital signatures)?
   - How does all this relate to the internet with certificates & co.?
+
+## Detecting tempering within hashes
+
+```
+message: Hello
+hash:    89af4e8609864d90b37d76c24b643033
+
+message': Hallo
+hash:     618ee44f319f486eaef6a7e2b92799e3
+```
+
+- Message Authentication Code (MAC)
+  - HMAC: Hash-based message authentication code
+
+```
+message:               Hello
+secret:                password
+hash(message+secret):  855e15163c9e438bb27f576ed7a94ef1
+
+message':              Hallo
+hash(message'+secret): ?
+```
+
+## Modern encryption algorithms
+
+- DES (Data Encryption Standard)
+  - Don't use that ;-)
+- 3DES (Workaround, 3x DES in a row)
+  - Don't use that ;-)
+- NIST (National Institute for Standards in Technology)
+  - Competition: Find a better algorithm than (3)DES
+  - AES (Advanced Encryption Standard)
+    - Block cipher (meaning it encrypts multiple characters at once (a so-called block))
+    - AES-128, AES-192, AES-256
+      - Don't use the former two, only use the latter one (AES-256)
+    - Each block is encrypted on its own
+      - ECB mode (= Electronic Code Book)
+    - Alternatively: Each block is encrypted based on its own data and its predecessor's encryption result
+      - CBC mode (= Cipher Block Chaining)
+      - Needs a random IV (= initialization vector), which acts as block 0, so that the first block has a predecessor
+      - CBC mode is *highly* to be preferred over the ECB mode
+
+=> Use `AES-256-CBC`
+
+```
+ECB example
+
+  12 12 12 12 12 12 12
+  my  n am e  is  a my
+|
+v
+  ft gu ab cz lo vt ft    (<- cipher text)
+
+  => Patterns from the plain text leak through to the cipher text
+     => Prone to statistical analysis
+
+
+
+CBC example
+
+ iv         12         12         12         12         12         12         12
+            my          n         am         e          is          a         my
+|         my^fr      ji^ n       ...                             re^ a      tz^my
+v
+ fr         ji         hu                                          tz         bv
+
+  => Patterns from the plain text do not leak through any more to the cipher text
+    => Not prone to statistical analysis
+```
+
+- A visual hint on why ECB is a bad idea ;-)
+  - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_(ECB)
+
+
+## Diffie-Hellman Key Exchange (DH)
+
+Alice                                                 Bob
+
+Secret color: Red                                     Secret color: Blue
+Public color: Yellow  ----------------------------->  Public color: Yellow
+
+Red + Yellow => Orange                                Blue + Yellow => Green
+                   \                                                    /
+                    ------------------------------->  Orange           /
+                Green  <----------------------------------------------
+
+Red + Green =                                         Blue + Orange =
+Red + Blue + Yellow =                                 Blue + Red + Yellow =
+Ugly brown ;-)                                        Ugly brown ;-)
+
+                          Yellow, Orange, Green
+                Yellow + Orange => Blue missing, too much Yellow
+                Yellow + Green => Red missing, too much Yellow
+                Orange + Green => Too much Yellow
+                ...
+
+
+- One-way functions, Trap-door functions
+  - Functions that are easy to calculate in one direction
+  - But (almost) impossible to calculate in the opposite direction
+
+- 37 * 41 = 1517   (multiplying two primes is easy)
+- 1517 = X * Y     (this is hard, takes a very long time)
+
+- Logarithm is *not* a trap-door function
+  - 2 ^ 3 = 8                        (taking a number to a power is easy)
+  - 2 ^ x = 8    =>   log2(8) => 3   (taking the logarithm is easy as well)
+- But the discrete logarithm is a trap-door function
+  - 2 ^ 3 mod 5 = 3                  (easy)
+  - 2 ^ x mod 5 = 3                  (this is hard, takes a very long time)
+
+
+Alice                                 Bob
+
+a = 2 (secret)                        b = 3 (secret)
+                g = 2, p = 5 (public)
+
+A = g ^ a mod p                       B = g ^ b mod p
+  = 2 ^ 2 mod 5                         = 2 ^ 3 mod 5
+  = 4                                   = 3 --\
+     \                                        |
+      ------------------------------> A = 4   |
+B = 3 <---------------------------------------/
+
+B = g ^ b mod p                       A = g ^ a mod p
+
+=> B ^ a mod p                        => A ^ b mod p
+   (g ^ b mod p) ^ a mod p               (g ^ a mod p) ^ b mod p
+   (g ^ b) ^ a mod p                     (g ^ a) ^ b mod p
+
+   B ^ a mod p                           A ^ b mod p
+   3 ^ 2 mod 5 = 4                       4 ^ 3 mod 5 = 4
+
+Hint: g ^ b ^ a = g ^ a ^ b
+
+
+## Encryption algorithms
+
+- What do
+  - Caesar
+  - DES
+  - 3DES
+  - AES
+- have in common?
+
+=> Symmetric encryption
+  - Because the *same* key is being used for encrypting and for decrypting things
+
+
+## Asymmetric encryption
+
+Alice                           Bob
+                                Key (secret)
+                                Padlock (public)
+
+<------------------------------ Box + padlock
+Message + box + padlock ------> Only Bob can open the box
+
+
+
+Alice                                 Bob
+- Private key (Alice)                 - Private key (Bob)
+- Public key (Alice)                  - Public Key (Bob)
+
+encrypt(Message, publicKeyBob) -----> decrypt(encryptedMessage, privateKeyBob)
+
+
+- RSA algorithm (Rivest, Shamir, Adleman)
+  - It works using a public and a private key pair
+  - This solves the key exchange problem
+
+
+### Let's reverse it ;-)
+
+encrypt(Message, privateKeyAlice) --> decrypt(encryptedMessage, publicKeyAlice)
+
+  2. It must come from Alice (Signature)
+   |
+   |    1. Only Bob can read it (Encryption)
+   |       |
+   v       v
+encrypt(encrypt(message, publicKeyBob), privateKeyAlice) ----> ...
+... ----> decrypt(decrypt(message, publicKeyAlice), privateKeyBob)
+             ^       ^
+             |       |
+             |   1. It was actually sent by Alice (Verifying signature)
+             |
+          2. Only Bob can read it (Decryption)
+
+
+### A few drawbacks
+
+- Asymmetric algorithms are dramatically slow (10.000x slower than symmetric)
+- It requires very large prime numbers, 1024 bit (do not use it), 2048 bit, 4096 bit
+- You can only use it for very short messages (i.e. 200 to 300 bytes)
+
+
+### The solution – a hybrid between symmetric and asymmetric encryption
+
+encryptAES(message, randomKey) => encryptedMessage
+encryptRSA(randomKey, publicKeyReceiver) => encryptedRandomKey
+
+Alice => (encryptedMessage, encryptedRandomKey) => Bob
+
+decryptRSA(encryptedRandomKey, privateKeyReceiver) => randomKey
+decryptAES(encryptedMessage, randomKey) => message
+
+
+### There's a new kid in town
+
+- RSA is a little bit outdated
+- ECC (Elliptic Curve Cryptography)
+
+- Linear equation:      y = m * x + b
+- Polynomial equations: y = x ^ 2 + a * x + b
+- Elliptic curve:       y ^ 2 = x ^ 3 + a * x + b
+
+
+- Idea: NIST standardizes `a` and `b` for elliptic curves, so that everyone can work on the same curve
+  - What should have happened: Take some arbitrary values for `a` and `b` and fix them
+  - What instead has happened: a = 0.42367423786487632764587, b = -1.326764328768463
+
+
+## A look at HTTPS
+
+Client ---------------------> Server
+                                Private key
+                                Certificate = (Public key + Domain name)
+                                  Digital signature by a trustworthy third party
+                                  To verify: Public key of trustworthy third party
+                                    Their public key: Digital signature by a trustworthy fourth party
+                                    To verify: Public key of trustworthy fourth party
+                                      ...
+
+- 2 Requirements
+  - The communication should be encrypted
+    - Use DHKE (or something similar) to figure out a shared key
+    - Use AES to encrypt the entire communication
+    - This is good, but doesn't protect against MITM (Man it the middle) attacks
+  - The server's identity should be verified
+    - Using a digital signature, this should be easy for the server
+    - This means the server needs a private and a public key pair
+
+Server -> Certificate <- CA (Certificate Authority)
+                          Certificate <- CA (Certificate Authority)
+                                          Certificate <- CA (Certificate Authority)
+                                                          Certificate <- Root Certificate Authority
+
+
+### Securing a server
+
+- Setting up a private / public key pair (`.pem`)
+- Add desired metadata to the public key, now you need a digital signature by a CA
+  - Bundle public key and metadata into a certificate signing request (CSR)
+  - You send the CSR to a CA
+- CA verifies that you are who you pretend to be in the metadata of the CSR
+  - If you can not be verified, they deny the CSR
+  - If you be verified successfully, the sign the CSR and this way turn it into a signed certificate
+    - They send the certificate back to you
+- You delete the public key, and store the certificate file on the server
+
+- Mozilla created a free CA called "Let's Encrypt"
+  - Works fully automated
+  - Certificates expire after 90 days
+  - Meanwhile lots of other companies help to back LE
+  - However, works only for public resolvable domain names
+
+- For internal servers
+  - Option 1
+    - Create a private+public key, create a CSR, sign the CSR with *your own* private key
+    - This is some kind of self-referencing certificate, which signs itself
+    - "Self-signed certificate", insecure, not valid, but it works for testing purposes
+  - Option 2
+    - Run your own certificate authority (CA)
+    - You can add your own CA's certificate as a root certificate to your devices
+    - You need a software such as LE to run internally, e.g. *Vault* by Hashicorp
+    - Be careful here, whom you trust … there may be dragons ;-)
+
+
+## Summary
+
+- Encryption
+  - Symmetric encryption (AES-256-CBC)
+  - Asymmetric encryption (RSA-2048, ECC)
+    - Hybrid encryption with AES
+    - Digital signatures
+- Key exchange (Diffie-Hellman)
+- Hashing (SHA2)
+  - MACs (HMAC)
+- Random numbers
+  - Pseudo random
+  - Cryptographically secure random
+
+- Application
+  - Certificates + HTTPS
+    - Symmetric encryption, digital signatures, hashes
+  - Encrypting + signing mails
+    - Symmetric encryption, asymmetric encryption, digital signatures
+  - Safe storage
+    - Symmetric encryption
+  - Detect broken downloads
+    - Hashing
+  - Safe communication across an untrusted network (VPN)
+    - Symmetric encryption, asymmetric encryption
+  - …
